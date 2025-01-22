@@ -145,12 +145,6 @@ if selectedNode then
     safeFileWrite(splineFile, table.concat(splineContent))
     safeFileWrite(csvFile, table.concat(csvTxt))
 
-    -- Output the saved coordinates
-    --log("Saved coordinates:")
-    --for i, coord in ipairs(coordinates) do
-    --    log(string.format("Node: %s - X: %.2f, Y: %.2f, Z: %.2f", coord.name, coord.x, coord.y, coord.z))
-    --end
-
     -- Close the Files
     safeFileWrite(splineFile, xmlFour)
     delete(splineFile)
