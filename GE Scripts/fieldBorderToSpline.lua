@@ -12,7 +12,6 @@ source("map/farmlandFields/fieldUtil.lua")
 -- Build the class
 FieldToSplineConverter = {}
 local coordinates = {}
-local csvTxt = {}
 local rootNode = getRootNode()
 
 
@@ -71,6 +70,17 @@ local function getNodeByName(name)
     return nil
 end
 
+local function findChildByName(parentNode, name)
+    local numChildren = getNumOfChildren(parentNode)
+    for i = 0, numChildren - 1 do
+        local child = getChildAt(parentNode, i)
+        if getName(child) == name then
+            return child
+        end
+    end
+    return nil
+end
+
 -- Try to find the node "polygonPoints"
 local selectedNode = getNodeByName("polygonPoints")
 if not selectedNode then
@@ -116,14 +126,6 @@ if selectedNode then
     end
     log("i3d file created successfully!")
 
-    local filenameTXT = genSplineFolder .. splineName .. "_splineData.txt"
-    local csvFile = createFile(filenameTXT, 0)
-    if csvFile == 0 then
-        log("Error creating the Data file!")
-        return nil
-    end
-    log("Data file created successfully!")
-
     -- XML header for the i3D file
     local xmlTop = string.format("<?xml version=%q encoding=%q?>\n", "1.0", "iso-8859-1")
     local xmlOne = string.format("<i3D name=%q version=%q xmlns:xsi=%q xsi:noNamespaceSchemaLocation=%q>\n", splineName .. "_spline", "1.6", "http://www.w3.org/2001/XMLSchema-instance", "http://i3d.giants.ch/schema/i3d-1.6.xsd")
@@ -139,19 +141,25 @@ if selectedNode then
     for i, coord in ipairs(coordinates) do
         local csvPos = string.format("%f, %f, %f", coord.x, coord.y, coord.z)
         table.insert(splineContent, string.format("\n              <cv c=%q />", csvPos))
-        table.insert(csvTxt, string.format("%f, %f, %f\n", coord.z, coord.x, coord.y))
     end
 
     -- Jetzt alle in einer Operation schreiben:
     safeFileWrite(splineFile, table.concat(splineContent))
-    safeFileWrite(csvFile, table.concat(csvTxt))
 
     -- Close the Files
     safeFileWrite(splineFile, xmlFour)
 
+    local existingNode = findChildByName(rootNode, splineName .. "_spline")
+    if existingNode ~= nil then
+        log("The i3D file is already loaded. Reloading...")
+        delete(existingNode)
+    else
+        log("The i3D file is not loaded. Importing...")
+    end
+
      -- Load the created i3D file as reference
     log("Loading the created i3D file...")
-    local loadedNode = loadI3DFile(filenameI3D, false, false)
+    local loadedNode = createI3DReference(filenameI3D, false, false)
     if loadedNode ~= 0 then
         link(rootNode, loadedNode)
         log("Successfully loaded and linked the i3D file to the rootNode.")
@@ -160,7 +168,6 @@ if selectedNode then
     end
 
     delete(splineFile)
-    delete(csvFile)
     log("Process completed successfully!")
 else
     log("No object selected.")
