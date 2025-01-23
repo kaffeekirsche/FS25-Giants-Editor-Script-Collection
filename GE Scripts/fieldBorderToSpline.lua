@@ -13,6 +13,7 @@ source("map/farmlandFields/fieldUtil.lua")
 FieldToSplineConverter = {}
 local coordinates = {}
 local csvTxt = {}
+local rootNode = getRootNode()
 
 
 -- Centralized logging function
@@ -99,24 +100,24 @@ if selectedNode then
     -- Get scene file path
     local fileName = getSceneFilename()
     local newStr = fileName:sub(1, fileName:find("/[^/]*$"))
-    local tempFolder = newStr .. "Temp/"
+    local genSplineFolder = newStr .. "fieldSplines/"
 
     -- Check if temp folder exists, create if not
-    if not fileExists(tempFolder) then
-        createFolder(tempFolder)
+    if not fileExists(genSplineFolder) then
+        createFolder(genSplineFolder)
     end
 
     -- Set file paths
-    local filename1 = tempFolder .. splineName .. "_spline.i3d"
-    local splineFile = createFile(filename1, 0)
+    local filenameI3D = genSplineFolder .. splineName .. "_spline.i3d"
+    local splineFile = createFile(filenameI3D, 0)
     if not splineFile then
         log("ERROR: Unable to create the i3d file!")
         return false -- Statt return nil, könnte man auch false zurückgeben, falls man den Status kontrollieren möchte
     end
     log("i3d file created successfully!")
 
-    local filename3 = tempFolder .. splineName .. "_splineData.txt"
-    local csvFile = createFile(filename3, 0)
+    local filenameTXT = genSplineFolder .. splineName .. "_splineData.txt"
+    local csvFile = createFile(filenameTXT, 0)
     if csvFile == 0 then
         log("Error creating the Data file!")
         return nil
@@ -147,9 +148,19 @@ if selectedNode then
 
     -- Close the Files
     safeFileWrite(splineFile, xmlFour)
+
+     -- Load the created i3D file as reference
+    log("Loading the created i3D file...")
+    local loadedNode = loadI3DFile(filenameI3D, false, false)
+    if loadedNode ~= 0 then
+        link(rootNode, loadedNode)
+        log("Successfully loaded and linked the i3D file to the rootNode.")
+    else
+        log("Failed to load the i3D file.")
+    end
+
     delete(splineFile)
     delete(csvFile)
-
     log("Process completed successfully!")
 else
     log("No object selected.")
